@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ベルセレマ 会館さがし</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Shippori+Mincho:wght@600&display=swap');
+:root{
+  --ink:#1a1a2e; --gold:#b8962e; --gold-l:#d4af5a;
+  --cream:#f4f1ec; --border:#ddd5c8; --grey:#6b6b7b;
+  --green:#2a7a4f; --red:#b03030;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--cream);font-family:'Noto Sans JP',sans-serif;color:var(--ink);}
+
+header{background:var(--ink);padding:14px 16px 0;text-align:center;}
+header h1{font-family:'Shippori Mincho',serif;color:#fff;font-size:1.15rem;letter-spacing:.15em;}
+header p{color:var(--gold-l);font-size:.63rem;margin-top:3px;}
+.hline{height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin-top:10px;}
+
+/* タブ */
+.tabs{display:flex;background:var(--ink);max-width:560px;margin:0 auto;}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:.74rem;color:#888;
+  cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.tab.active{color:var(--gold-l);border-bottom-color:var(--gold);}
+.panel{display:none;} .panel.active{display:block;}
+
+.wrap{max-width:560px;margin:0 auto;padding:14px 14px 0;}
+
+/* 検索ボックス */
+.hint{font-size:.7rem;color:var(--grey);margin-bottom:8px;line-height:1.7;
+  background:#fff;border:1px solid var(--border);border-radius:6px;padding:7px 12px;}
+.hint b{color:var(--gold);}
+
+.suggest-wrap{position:relative;}
+.search-row{display:flex;gap:8px;}
+.search-row input{
+  flex:1;border:2px solid var(--border);border-radius:8px;
+  font-size:1.1rem;padding:12px 13px;color:var(--ink);
+  font-family:'Noto Sans JP',sans-serif;outline:none;background:#fff;
+  transition:border-color .2s;
+}
+.search-row input:focus{border-color:var(--gold);}
+.search-row input::placeholder{color:#bbb;font-size:.88rem;}
+.btn{background:var(--gold);border:none;border-radius:8px;color:#fff;
+  font-size:1rem;font-weight:700;padding:12px 18px;cursor:pointer;
+  font-family:'Noto Sans JP',sans-serif;white-space:nowrap;}
+.btn:hover{background:var(--gold-l);}
+
+/* サジェスト */
+.suggest{background:#fff;border:1px solid var(--border);border-radius:8px;
+  margin-top:4px;display:none;box-shadow:0 4px 16px rgba(0,0,0,.1);
+  max-height:260px;overflow-y:auto;position:absolute;width:100%;z-index:99;}
+.sg{padding:11px 14px;cursor:pointer;border-bottom:1px solid #f0ebe2;
+  display:flex;justify-content:space-between;align-items:center;transition:background .1s;}
+.sg:last-child{border-bottom:none;}
+.sg:hover{background:var(--gold);color:#fff;}
+.sg-kanji{font-size:.95rem;font-weight:700;}
+.sg-kana{font-size:.7rem;color:var(--grey);}
+.sg:hover .sg-kana{color:#fff;}
+
+.status{font-size:.8rem;color:var(--grey);padding:8px 0 3px;min-height:28px;text-align:center;}
+.status.ok{color:var(--green);} .status.err{color:var(--red);}
+
+/* チップ */
+.chips-label{font-size:.68rem;color:var(--grey);margin-bottom:5px;}
+.chips{display:flex;flex-wrap:wrap;gap:4px;padding-bottom:12px;}
+.chip{background:#fff;border:1px solid var(--border);border-radius:20px;
+  padding:4px 11px;font-size:.7rem;cursor:pointer;color:var(--ink);
+  transition:all .15s;display:flex;flex-direction:column;align-items:center;}
+.chip-kana{font-size:.58rem;color:var(--grey);}
+.chip:hover{background:var(--gold);color:#fff;border-color:var(--gold);}
+.chip:hover .chip-kana{color:#ffe;}
+
+/* 結果カード */
+.results{max-width:560px;margin:0 auto;padding:0 14px 50px;}
+.res-head{font-size:.72rem;color:var(--grey);border-bottom:1px solid var(--border);
+  padding-bottom:6px;margin-bottom:10px;}
+.card{background:#fff;border:1px solid var(--border);border-radius:10px;
+  padding:13px 14px;margin-bottom:8px;display:flex;align-items:center;gap:11px;
+  box-shadow:0 2px 5px rgba(0,0,0,.04);animation:up .2s ease both;}
+@keyframes up{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.card.top1{border:2px solid var(--gold);background:#fffdf7;}
+.rank{min-width:28px;height:28px;border-radius:50%;background:var(--gold);color:#fff;
+  font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.card.top1 .rank{min-width:32px;height:32px;font-size:.88rem;}
+.body{flex:1;min-width:0;}
+.hall-name{font-family:'Shippori Mincho',serif;font-size:1rem;font-weight:600;margin-bottom:2px;}
+.card.top1 .hall-name{font-size:1.1rem;color:var(--gold);}
+.hall-addr{font-size:.73rem;color:var(--grey);}
+.dist-wrap{text-align:right;flex-shrink:0;}
+.dist-num{font-size:1.35rem;font-weight:700;color:var(--ink);line-height:1;}
+.card.top1 .dist-num{color:var(--gold);}
+.dist-unit{font-size:.62rem;color:var(--grey);}
+.map-link{display:inline-block;margin-top:5px;font-size:.7rem;color:var(--green);
+  text-decoration:none;border:1px solid var(--green);border-radius:4px;padding:2px 8px;}
+.map-link:hover{background:var(--green);color:#fff;}
+
+/* 逆引きパネル */
+.rev-wrap{max-width:560px;margin:0 auto;padding:14px 14px 10px;}
+.hall-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.hall-btn{background:#fff;border:1.5px solid var(--border);border-radius:8px;
+  padding:12px 14px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;
+  font-size:.92rem;font-weight:700;color:var(--ink);transition:all .15s;text-align:left;}
+.hall-btn:hover,.hall-btn.sel{background:var(--gold);color:#fff;border-color:var(--gold);}
+.hall-btn-sub{font-size:.7rem;font-weight:400;color:var(--grey);margin-top:2px;}
+.hall-btn:hover .hall-btn-sub,.hall-btn.sel .hall-btn-sub{color:#ffe;}
+
+.radius-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  background:#fff;border:1px solid var(--border);border-radius:6px;padding:9px 13px;}
+.radius-row label{font-size:.75rem;color:var(--grey);white-space:nowrap;}
+.radius-row input[type=range]{flex:1;accent-color:var(--gold);}
+.radius-val{font-size:.88rem;font-weight:700;color:var(--gold);min-width:44px;text-align:right;}
+
+/* 逆引き結果 */
+.town-result{max-width:560px;margin:0 auto;padding:0 14px 50px;}
+.town-res-head{font-size:.72rem;color:var(--grey);border-bottom:1px solid var(--border);
+  padding-bottom:6px;margin-bottom:10px;}
+.town-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.town-chip{background:#fff;border:1px solid var(--border);border-radius:6px;
+  padding:5px 11px;font-size:.8rem;cursor:default;}
+.town-chip:nth-child(odd){border-left:3px solid var(--gold);}
+
+/* パスワード保護 編集モード */
+.lock-btn{position:fixed;bottom:16px;right:16px;background:var(--ink);color:#fff;
+  border:none;border-radius:50%;width:42px;height:42px;font-size:1rem;cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:999;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;
+  align-items:center;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{background:#fff;border-radius:12px;padding:24px;width:90%;max-width:360px;}
+.modal h3{font-size:1rem;margin-bottom:12px;color:var(--ink);}
+.modal input{width:100%;border:1.5px solid var(--border);border-radius:6px;
+  padding:10px 12px;font-size:1rem;outline:none;font-family:'Noto Sans JP',sans-serif;margin-bottom:10px;}
+.modal input:focus{border-color:var(--gold);}
+.modal-btns{display:flex;gap:8px;}
+.modal-btns button{flex:1;padding:10px;border:none;border-radius:6px;cursor:pointer;
+  font-family:'Noto Sans JP',sans-serif;font-size:.88rem;font-weight:700;}
+.btn-ok{background:var(--gold);color:#fff;}
+.btn-cancel{background:#eee;color:var(--grey);}
+.modal-err{font-size:.75rem;color:var(--red);margin-bottom:8px;display:none;}
+
+.edit-panel{display:none;max-width:560px;margin:0 auto;padding:14px;}
+.edit-panel.show{display:block;}
+.edit-title{font-size:.85rem;font-weight:700;color:var(--gold);margin-bottom:10px;
+  padding-bottom:6px;border-bottom:1px solid var(--border);}
+.edit-textarea{width:100%;height:160px;border:1.5px solid var(--border);border-radius:6px;
+  padding:10px;font-size:.78rem;font-family:monospace;outline:none;resize:vertical;}
+.edit-textarea:focus{border-color:var(--gold);}
+.edit-actions{display:flex;gap:8px;margin-top:8px;}
+.edit-actions button{flex:1;padding:10px;border:none;border-radius:6px;cursor:pointer;
+  font-family:'Noto Sans JP',sans-serif;font-size:.85rem;font-weight:700;}
+.btn-save{background:var(--green);color:#fff;}
+.btn-logout{background:#eee;color:var(--grey);}
+.edit-note{font-size:.7rem;color:var(--grey);margin-top:6px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ベルセレマ　会館さがし</h1>
+  <p>町名を入れると近い会館が出ます</p>
+  <div class="hline"></div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('search')">🔍 町名→会館</div>
+  <div class="tab"        onclick="switchTab('rev')">🏛 会館→町名</div>
+</div>
+
+<!-- ===== 町名→会館 タブ ===== -->
+<div class="panel active" id="panel-search">
+<div class="wrap">
+  <div class="hint">💡 <b>ひらがなでも漢字でも</b>入力できます<br>例：「こうもんみょう」→「公文名」が候補に出ます</div>
+  <div class="suggest-wrap">
+    <div class="search-row">
+      <input id="inp" type="text" placeholder="町名・部落名（例：こし、じょうがわら…）" autocomplete="off"/>
+    </div>
+    <div class="suggest" id="suggest"></div>
+    <div style="text-align:center;margin-top:10px">
+      <button class="btn" onclick="doSearch()" style="padding:12px 48px;font-size:1rem">検索</button>
+    </div>
+  </div>
+  <div class="status" id="st">町名を入力してください（ひらがなOK）</div>
+  <div class="chips-label">よく使う地名</div>
+  <div class="chips" id="chips"></div>
+</div>
+<div class="results" id="results"></div>
+</div>
+
+<!-- ===== 会館→町名 タブ ===== -->
+<div class="panel" id="panel-rev">
+<div class="rev-wrap">
+  <div class="chips-label" style="margin-bottom:8px">会館を選んでください</div>
+  <div class="hall-grid" id="hallGrid"></div>
+  <div class="radius-row">
+    <label>範囲</label>
+    <input type="range" id="revRad" min="1" max="20" value="5" step="1" oninput="setRevRad(this.value)">
+    <div class="radius-val" id="revRadVal">5 km</div>
+  </div>
+  <div class="status" id="revSt">会館を選ぶと圏内の町名が表示されます</div>
+</div>
+<div class="town-result" id="townResult"></div>
+</div>
+
+<!-- 編集ロックボタン -->
+<button class="lock-btn" onclick="openLock()" title="管理者編集">🔒</button>
+
+<!-- パスワードモーダル -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>🔐 管理者パスワード</h3>
+    <div class="modal-err" id="modalErr">パスワードが違います</div>
+    <input type="password" id="pwInput" placeholder="パスワードを入力" />
+    <div class="modal-btns">
+      <button class="btn-ok" onclick="checkPw()">ログイン</button>
+      <button class="btn-cancel" onclick="closeLock()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編集パネル（パスワード後に表示） -->
+<div class="edit-panel" id="editPanel">
+  <div class="edit-title">🛠 管理者モード：町名データ編集</div>
+  <div class="edit-note">
+    書式：{k:'町名', r:'よみがな', lat:緯度, lng:経度},<br>
+    一行追加するだけで検索に反映されます。
+  </div>
+  <textarea class="edit-textarea" id="editArea"></textarea>
+  <div class="edit-actions">
+    <button class="btn-save" onclick="saveEdit()">✅ 保存して反映</button>
+    <button class="btn-logout" onclick="logout()">ログアウト</button>
+  </div>
+</div>
+
+<script>
+// ===== 会館データ =====
+const HALLS = [
+  {name:'シティホール呉羽',         addr:'富山市茶屋町',     lat:36.6853,lng:137.1720},
+  {name:'シティホール富山',         addr:'富山市桜町',       lat:36.6962,lng:137.2135},
+  {name:'シティホール掛尾',         addr:'富山市黒瀬北町',   lat:36.6750,lng:137.1980},
+  {name:'富山葬儀法要会館',         addr:'富山市豊田町',     lat:36.6820,lng:137.2050},
+  {name:'シティホール新庄',         addr:'富山市新庄町',     lat:36.6710,lng:137.2340},
+  {name:'想送会館おおさわの',       addr:'富山市大沢野',     lat:36.6230,lng:137.1600},
+  {name:'高屋敷ホール',             addr:'富山市高屋敷',     lat:36.6450,lng:137.1850},
+  {name:'婦中ホール',               addr:'富山市婦中町速星', lat:36.6180,lng:137.1270},
+  {name:'高岡シティホール',         addr:'高岡市広小路',     lat:36.7540,lng:137.0260},
+  {name:'高岡駅南ホール',           addr:'高岡市駅南',       lat:36.7490,lng:137.0250},
+  {name:'高岡戸出シティホール',     addr:'高岡市戸出',       lat:36.7050,lng:137.0600},
+  {name:'想送会館 六家',            addr:'高岡市六家',       lat:36.7280,lng:136.9980},
+  {name:'想送会館 野村',            addr:'高岡市野村',       lat:36.7420,lng:137.0050},
+  {name:'家族葬・小型葬荻布ホール', addr:'高岡市荻布',       lat:36.7350,lng:137.0180},
+  {name:'シティホール射水',         addr:'射水市大島',       lat:36.7490,lng:137.0780},
+  {name:'家族葬会館こすぎ',         addr:'射水市小杉',       lat:36.7610,lng:137.0860},
+  {name:'シティホール黒部',         addr:'黒部市沓掛',       lat:36.8670,lng:137.4540},
+  {name:'想送会館 人善',            addr:'入善町',           lat:36.9280,lng:137.5020},
+  {name:'シティホール魚津',         addr:'魚津市吉島',       lat:36.8310,lng:137.4150},
+];
+
+// ===== 町名データベース =====
+let TOWNS = [
+  // 富山市 中心部
+  {k:'総曲輪',      r:'そうがわ',             lat:36.6957,lng:137.2108},
+  {k:'桜町',        r:'さくらまち',           lat:36.6962,lng:137.2135},
+  {k:'西町',        r:'にしちょう',           lat:36.6950,lng:137.2090},
+  {k:'一番町',      r:'いちばんまち',         lat:36.6945,lng:137.2130},
+  {k:'大手町',      r:'おおてまち',           lat:36.6973,lng:137.2098},
+  {k:'本丸',        r:'ほんまる',             lat:36.6970,lng:137.2075},
+  {k:'丸の内',      r:'まるのうち',           lat:36.6972,lng:137.2080},
+  {k:'安住町',      r:'あずみちょう',         lat:36.6958,lng:137.2118},
+  {k:'越前町',      r:'えちぜんまち',         lat:36.6952,lng:137.2095},
+  {k:'新総曲輪',    r:'しんそうがわ',         lat:36.6955,lng:137.2105},
+  {k:'旅籠町',      r:'はたごまち',           lat:36.6958,lng:137.2150},
+  {k:'中央通り',    r:'ちゅうおうどおり',     lat:36.6955,lng:137.2120},
+  // 愛宕地区
+  {k:'牛島町',      r:'うしじまちょう',       lat:36.6910,lng:137.2250},
+  {k:'牛島本町',    r:'うしじまほんまち',     lat:36.6915,lng:137.2260},
+  {k:'内幸町',      r:'うちさいわいちょう',   lat:36.6920,lng:137.2190},
+  {k:'木場町',      r:'きばまち',             lat:36.6900,lng:137.2200},
+  {k:'神通本町',    r:'じんづうほんまち',     lat:36.6895,lng:137.2215},
+  {k:'神通町',      r:'じんづうまち',         lat:36.6890,lng:137.2210},
+  {k:'新富町',      r:'しんとみちょう',       lat:36.6925,lng:137.2205},
+  {k:'宝町',        r:'たからまち',           lat:36.6930,lng:137.2195},
+  {k:'明輪町',      r:'めいりんちょう',       lat:36.6912,lng:137.2235},
+  {k:'安田町',      r:'やすだまち',           lat:36.6918,lng:137.2220},
+  // 安野屋地区
+  {k:'磯部町',      r:'いそべまち',           lat:36.6870,lng:137.2310},
+  {k:'鹿島町',      r:'かしまちょう',         lat:36.6865,lng:137.2290},
+  {k:'芝園町',      r:'しばぞのちょう',       lat:36.6882,lng:137.2285},
+  {k:'諏訪川原',    r:'すわのかわら',         lat:36.6875,lng:137.2275},
+  {k:'土居原町',    r:'どいはらまち',         lat:36.6868,lng:137.2265},
+  {k:'舟橋北町',    r:'ふなはしきたまち',     lat:36.6885,lng:137.2295},
+  {k:'舟橋南町',    r:'ふなはしみなみちょう', lat:36.6880,lng:137.2298},
+  {k:'安野屋町',    r:'やすのやちょう',       lat:36.6872,lng:137.2278},
+  // 八人町地区
+  {k:'荒町',        r:'あらまち',             lat:36.6942,lng:137.2175},
+  {k:'千歳町',      r:'ちとせまち',           lat:36.6920,lng:137.2080},
+  {k:'常盤町',      r:'ときわちょう',         lat:36.6944,lng:137.2182},
+  {k:'八人町',      r:'はちにんまち',         lat:36.6940,lng:137.2190},
+  {k:'本町',        r:'ほんまち',             lat:36.6925,lng:137.2155},
+  // 柳町地区
+  {k:'稲荷元町',    r:'いなりもとまち',       lat:36.7010,lng:137.2180},
+  {k:'緑町',        r:'みどりちょう',         lat:36.6980,lng:137.2160},
+  {k:'向川原町',    r:'むこうがわらまち',     lat:36.6985,lng:137.2155},
+  {k:'柳町',        r:'やなぎまち',           lat:36.6990,lng:137.2148},
+  {k:'弥生町',      r:'やよいちょう',         lat:36.6988,lng:137.2143},
+  {k:'太郎丸',      r:'たろうまる',           lat:36.7030,lng:137.2000},
+  // 清水町地区
+  {k:'清水町',      r:'しみずまち',           lat:36.7008,lng:137.2040},
+  {k:'元町',        r:'もとまち',             lat:36.6998,lng:137.2025},
+  {k:'今泉',        r:'いまいずみ',           lat:36.6988,lng:137.2018},
+  // 堀川地区
+  {k:'公文名',      r:'こうもんみょう',       lat:36.6848,lng:137.2125},
+  {k:'東公文名',    r:'ひがしこうもんみょう', lat:36.6855,lng:137.2145},
+  {k:'西公文名',    r:'にしこうもんみょう',   lat:36.6845,lng:137.2115},
+  {k:'大町',        r:'おおまち',             lat:36.6955,lng:137.2100},
+  {k:'堀川町',      r:'ほりかわまち',         lat:36.6992,lng:137.2012},
+  {k:'五福',        r:'ごふく',               lat:36.6990,lng:137.2090},
+  {k:'文京町',      r:'ぶんきょうちょう',     lat:36.6990,lng:137.2070},
+  // 豊田地区
+  {k:'豊田町',      r:'とよたまち',           lat:36.6815,lng:137.2048},
+  {k:'城川原',      r:'じょうがわら',         lat:36.6793,lng:137.2148},
+  {k:'高園町',      r:'たかぞのちょう',       lat:36.6838,lng:137.2072},
+  {k:'水落',        r:'みずおち',             lat:36.6858,lng:137.2155},
+  {k:'米田町',      r:'よねだまち',           lat:36.6810,lng:137.2040},
+  // 広田地区
+  {k:'荏原',        r:'えばら',               lat:36.6870,lng:137.2440},
+  {k:'田畑',        r:'たばた',               lat:36.6900,lng:137.2390},
+  {k:'田畑新町',    r:'たばたしんまち',       lat:36.6910,lng:137.2410},
+  {k:'問屋町',      r:'といやまち',           lat:36.6855,lng:137.2335},
+  // 新庄地区
+  {k:'新庄町',      r:'しんじょうまち',       lat:36.6708,lng:137.2335},
+  {k:'新庄銀座',    r:'しんじょうぎんざ',     lat:36.6720,lng:137.2300},
+  {k:'向新庄町',    r:'むかいしんじょうまち', lat:36.6760,lng:137.2010},
+  // 藤ノ木地区
+  {k:'藤の木台',    r:'ふじのきだい',         lat:36.6905,lng:137.2475},
+  {k:'大江干',      r:'おおえぼし',           lat:36.6875,lng:137.2445},
+  // 山室地区
+  {k:'山室',        r:'やまむろ',             lat:36.6862,lng:137.2512},
+  {k:'山室荒屋',    r:'やまむろあらや',       lat:36.6870,lng:137.2550},
+  {k:'秋吉',        r:'あきよし',             lat:36.6835,lng:137.2525},
+  // 月岡地区
+  {k:'月岡',        r:'つきおか',             lat:36.6798,lng:137.2412},
+  {k:'月見町',      r:'つきみちょう',         lat:36.6830,lng:137.2250},
+  // 熊野地区
+  {k:'千俵町',      r:'せんびょうまち',       lat:36.6795,lng:137.2375},
+  // 針原地区
+  {k:'上飯野',      r:'かみいいの',           lat:36.6750,lng:137.2450},
+  {k:'下飯野',      r:'しもいいの',           lat:36.6730,lng:137.2480},
+  {k:'八ヶ山',      r:'はちがやま',           lat:36.6690,lng:137.2510},
+  // 太田地区
+  {k:'平岡',        r:'ひらおか',             lat:36.6668,lng:137.2372},
+  {k:'西番',        r:'にしのばん',           lat:36.6650,lng:137.2300},
+  {k:'東番',        r:'ひがしのばん',         lat:36.6640,lng:137.2350},
+  {k:'石田',        r:'いしだ',               lat:36.6580,lng:137.2200},
+  {k:'古沢',        r:'ふるさわ',             lat:36.6600,lng:137.2280},
+  {k:'境野',        r:'さかいの',             lat:36.6940,lng:137.2350},
+  {k:'千石町',      r:'せんごくまち',         lat:36.6820,lng:137.2300},
+  {k:'森',          r:'もり',                 lat:36.6960,lng:137.2310},
+  // 蜷川地区
+  {k:'蜷川',        r:'にながわ',             lat:36.6758,lng:137.1998},
+  {k:'布市',        r:'ぬのいち',             lat:36.6755,lng:137.1995},
+  {k:'八日町',      r:'ようかまち',           lat:36.6748,lng:137.1988},
+  {k:'黒崎',        r:'くろさき',             lat:36.6768,lng:137.2008},
+  // 新保地区
+  {k:'塚原',        r:'つかはら',             lat:36.7165,lng:137.3035},
+  {k:'任海',        r:'とうみ',               lat:36.7162,lng:137.3032},
+  {k:'惣在寺',      r:'そうざいじ',           lat:36.7168,lng:137.3038},
+  {k:'才覚寺',      r:'さいかくじ',           lat:36.7172,lng:137.3042},
+  {k:'経田',        r:'きょうでん',           lat:36.7178,lng:137.3048},
+  {k:'別名',        r:'べつみょう',           lat:36.7142,lng:137.3012},
+  // 岩瀬地区
+  {k:'岩瀬',        r:'いわせ',               lat:36.7338,lng:137.2428},
+  {k:'東岩瀬',      r:'ひがしいわせ',         lat:36.7380,lng:137.2480},
+  // 浜黒崎地区
+  {k:'浜黒崎',      r:'はまくろさき',         lat:36.7425,lng:137.2415},
+  // 北部
+  {k:'水橋',        r:'みずはし',             lat:36.7158,lng:137.2798},
+  {k:'水橋中村町',  r:'みずはしなかむらまち', lat:36.7200,lng:137.2850},
+  {k:'水橋沖塚原',  r:'みずはしおきつかはら', lat:36.7250,lng:137.2900},
+  {k:'草島',        r:'くさじま',             lat:36.7300,lng:137.2100},
+  {k:'奥田',        r:'おくだ',               lat:36.7050,lng:137.2150},
+  {k:'布目',        r:'ぬのめ',               lat:36.7080,lng:137.2300},
+  {k:'二俣',        r:'ふたまた',             lat:36.7100,lng:137.2380},
+  {k:'粟島町',      r:'あわじままち',         lat:36.7100,lng:137.2200},
+  // 八幡地区
+  {k:'八幡',        r:'やはた',               lat:36.7202,lng:137.2052},
+  {k:'百塚',        r:'ひゃくづか',           lat:36.7212,lng:137.2062},
+  {k:'山岸',        r:'やまぎし',             lat:36.7198,lng:137.2048},
+  // 四方地区
+  {k:'四方',        r:'しかた',               lat:36.7175,lng:137.1575},
+  {k:'四方荒屋',    r:'よかたあらや',         lat:36.7182,lng:137.1582},
+  // 寒江地区
+  {k:'大塚',        r:'おおつか',             lat:36.7258,lng:137.1828},
+  {k:'中沖',        r:'なかおき',             lat:36.7268,lng:137.1838},
+  {k:'野口',        r:'のぐち',               lat:36.7272,lng:137.1842},
+  // 萩浦地区
+  {k:'蓮町',        r:'はすまち',             lat:36.7060,lng:137.1890},
+  // 長岡・呉羽地区
+  {k:'呉羽町',      r:'くれはまち',           lat:36.6898,lng:137.1755},
+  {k:'茶屋町',      r:'ちゃやまち',           lat:36.6853,lng:137.1720},
+  {k:'上袋',        r:'かみふくろ',           lat:36.6930,lng:137.1680},
+  {k:'下袋',        r:'しもふくろ',           lat:36.6910,lng:137.1630},
+  {k:'北代',        r:'きただい',             lat:36.6912,lng:137.1772},
+  {k:'吉作',        r:'よしづくり',           lat:36.6938,lng:137.1798},
+  {k:'駒見',        r:'こまみ',               lat:36.6892,lng:137.1935},
+  {k:'桜谷',        r:'さくらだに',           lat:36.6888,lng:137.1930},
+  {k:'田刈屋',      r:'たかりや',             lat:36.6885,lng:137.1925},
+  // 老田地区
+  {k:'中老田',      r:'なかおいだ',           lat:36.6780,lng:137.1920},
+  {k:'願海寺',      r:'がんかいじ',           lat:36.6742,lng:137.1898},
+  {k:'野々上',      r:'ののうえ',             lat:36.6735,lng:137.1888},
+  {k:'掛尾',        r:'かけお',               lat:36.6748,lng:137.1975},
+  {k:'黒瀬',        r:'くろせ',               lat:36.6755,lng:137.1958},
+  {k:'黒瀬北町',    r:'くろせきたまち',       lat:36.6752,lng:137.1982},
+  // 池多地区
+  {k:'池多',        r:'いけだ',               lat:36.6638,lng:137.1758},
+  {k:'西押川',      r:'にしおしかわ',         lat:36.6628,lng:137.1748},
+  {k:'坂下',        r:'さかした',             lat:36.6635,lng:137.1755},
+  {k:'山本',        r:'やまもと',             lat:36.6500,lng:137.1500},
+  {k:'寺家',        r:'じけ',                 lat:36.6460,lng:137.1600},
+  {k:'新保',        r:'しんぼ',               lat:36.6580,lng:137.1400},
+  {k:'大庄',        r:'おおしょう',           lat:36.6550,lng:137.1350},
+  // 大沢野エリア
+  {k:'高屋敷',      r:'たかやしき',           lat:36.6448,lng:137.1845},
+  {k:'古志',        r:'こし',                 lat:36.6388,lng:137.1905},
+  {k:'小羽',        r:'こば',                 lat:36.6350,lng:137.1950},
+  {k:'上大久保',    r:'かみおおくぼ',         lat:36.6280,lng:137.1700},
+  {k:'下大久保',    r:'しもおおくぼ',         lat:36.6230,lng:137.1600},
+  {k:'大沢野',      r:'おおさわの',           lat:36.6195,lng:137.1548},
+  {k:'笹津',        r:'ささづ',               lat:36.5980,lng:137.1650},
+  {k:'猪谷',        r:'いのたに',             lat:36.5500,lng:137.1900},
+  {k:'稲代',        r:'いなしろ',             lat:36.6300,lng:137.1620},
+  {k:'加納',        r:'かのう',               lat:36.6168,lng:137.1535},
+  {k:'長走',        r:'ながしり',             lat:36.6148,lng:137.1515},
+  // 婦中エリア
+  {k:'速星',        r:'はやほし',             lat:36.6178,lng:137.1268},
+  {k:'婦中町速星',  r:'ふちゅうまちはやほし', lat:36.6180,lng:137.1270},
+  {k:'婦中町鵜坂',  r:'ふちゅうまちうさか',   lat:36.6620,lng:137.1700},
+  {k:'婦中町袋',    r:'ふちゅうまちふくろ',   lat:36.6212,lng:137.1302},
+  {k:'婦中町蛍川',  r:'ふちゅうまちほたるがわ',lat:36.6215,lng:137.1305},
+  {k:'婦中町麦島',  r:'ふちゅうまちむぎじま', lat:36.6222,lng:137.1312},
+  {k:'熊野',        r:'くまの',               lat:36.6350,lng:137.1050},
+  {k:'古里',        r:'ふるさと',             lat:36.6280,lng:137.0950},
+  {k:'宮川',        r:'みやかわ',             lat:36.6150,lng:137.0850},
+  {k:'音川',        r:'おとがわ',             lat:36.6050,lng:137.0700},
+  {k:'千里',        r:'ちさと',               lat:36.6250,lng:137.1200},
+  {k:'富川',        r:'とみかわ',             lat:36.6100,lng:137.1100},
+  // 大山エリア
+  {k:'上滝',        r:'かみたき',             lat:36.6620,lng:137.3050},
+  {k:'大山',        r:'おおやま',             lat:36.6500,lng:137.3200},
+  {k:'東福沢',      r:'ひがしふくざわ',       lat:36.6700,lng:137.3100},
+  {k:'有峰',        r:'ありみね',             lat:36.5200,lng:137.3500},
+  {k:'桑原',        r:'くわはら',             lat:36.6498,lng:137.3198},
+  // 八尾エリア
+  {k:'八尾町',      r:'やつおまち',           lat:36.5930,lng:137.1440},
+  {k:'八尾',        r:'やつお',               lat:36.5928,lng:137.1438},
+  {k:'杉原',        r:'すぎはら',             lat:36.5800,lng:137.1300},
+  {k:'室牧',        r:'むろまき',             lat:36.5650,lng:137.1100},
+  {k:'保内',        r:'ほない',               lat:36.5750,lng:137.1500},
+  {k:'黒瀬谷',      r:'くろぜだに',           lat:36.5700,lng:137.1200},
+  {k:'仁歩',        r:'にぶ',                 lat:36.5600,lng:137.1600},
+  {k:'大長谷',      r:'おおながたに',         lat:36.5400,lng:137.0800},
+  {k:'野積',        r:'のづみ',               lat:36.5480,lng:137.0980},
+  // 山田・細入エリア
+  {k:'山田',        r:'やまだ',               lat:36.5900,lng:137.0500},
+  {k:'細入',        r:'ほそいり',             lat:36.5600,lng:137.1800},
+  {k:'本郷町',      r:'ほんごうまち',         lat:36.6818,lng:137.2195},
+  {k:'長岡',        r:'ながおか',             lat:36.6918,lng:137.1778},
+  {k:'長岡新',      r:'ながおかしん',         lat:36.6920,lng:137.1780},
+  {k:'宮園',        r:'みやぞの',             lat:36.6718,lng:137.2458},
+  {k:'宮園町',      r:'みやぞのちょう',       lat:36.6718,lng:137.2458},
+  {k:'冨居栄町',    r:'ふごさかえまち',       lat:36.6845,lng:137.2325},
+  {k:'冨居栄',      r:'ふごさかえ',           lat:36.6845,lng:137.2325},
+  {k:'常盤台',      r:'ときわだい',           lat:36.6738,lng:137.2368},
+  {k:'町村',        r:'まちむら',             lat:36.6865,lng:137.2555},
+  {k:'東中野',      r:'ひがしなかの',         lat:36.7008,lng:137.2005},
+  {k:'東中野町',    r:'ひがしなかのまち',     lat:36.7008,lng:137.2005},
+  {k:'下大浦',      r:'しもおおうら',         lat:36.7145,lng:137.2820},
+  {k:'昭和町',      r:'しょうわまち',         lat:36.6972,lng:137.2088},
+  {k:'昭和',        r:'しょうわ',             lat:36.6972,lng:137.2088},
+  {k:'野町',        r:'のまち',               lat:36.6942,lng:137.2068},
+  {k:'町長',        r:'まちなが',             lat:36.5180,lng:137.1650},
+  {k:'清風町',      r:'せいふうちょう',       lat:36.6925,lng:137.2198},
+  {k:'道正',        r:'どうしょう',           lat:36.6745,lng:137.2485},
+  {k:'海岸通り',    r:'かいがんどおり',       lat:36.7310,lng:137.2350},
+  {k:'海岸通',      r:'かいがんどおり',       lat:36.7310,lng:137.2350},
+  {k:'舟橋今町',    r:'ふなはしいままち',     lat:36.6900,lng:137.2180},
+  {k:'舟橋今',      r:'ふなはしいま',         lat:36.6900,lng:137.2180},
+  {k:'花園',        r:'はなぞの',             lat:36.6855,lng:137.2298},
+  {k:'花園町',      r:'はなぞのちょう',       lat:36.6855,lng:137.2298},
+  {k:'住友町',      r:'すみともちょう',       lat:36.6928,lng:137.2195},
+  {k:'住友',        r:'すみとも',             lat:36.6928,lng:137.2195},
+  {k:'石金',        r:'いしがね',             lat:36.6882,lng:137.2380},
+  {k:'石金町',      r:'いしがねまち',         lat:36.6882,lng:137.2380},
+  // 高岡市
+  {k:'広小路',      r:'ひろこうじ',           lat:36.7540,lng:137.0260},
+  {k:'駅南',        r:'えきみなみ',           lat:36.7490,lng:137.0250},
+  {k:'戸出',        r:'とで',                 lat:36.7048,lng:137.0598},
+  {k:'六家',        r:'むつや',               lat:36.7280,lng:136.9980},
+  {k:'野村',        r:'のむら',               lat:36.7420,lng:137.0050},
+  {k:'荻布',        r:'おぎの',               lat:36.7350,lng:137.0180},
+  {k:'伏木',        r:'ふしき',               lat:36.7900,lng:137.0100},
+  {k:'福岡',        r:'ふくおか',             lat:36.7700,lng:136.9800},
+  {k:'二上',        r:'ふたがみ',             lat:36.7800,lng:137.0400},
+  {k:'守山',        r:'もりやま',             lat:36.7450,lng:137.0650},
+  {k:'佐野',        r:'さの',                 lat:36.7380,lng:137.0700},
+  {k:'平米',        r:'ひらこめ',             lat:36.7500,lng:137.0380},
+  {k:'木津',        r:'きづ',                 lat:36.7420,lng:137.0120},
+  {k:'江尻',        r:'えじり',               lat:36.7350,lng:137.0080},
+  {k:'苗加',        r:'のうか',               lat:36.7200,lng:137.0400},
+  {k:'氷見',        r:'ひみ',                 lat:36.8550,lng:136.9870},
+  // 射水市
+  {k:'富山市小杉',  r:'とやまこすぎ',         lat:36.6758,lng:137.1995},
+  {k:'小杉',        r:'こすぎとやま',         lat:36.6758,lng:137.1995},
+  {k:'射水小杉',    r:'いみずこすぎ',         lat:36.7608,lng:137.0858},
+  {k:'小杉',        r:'こすぎ',               lat:36.7610,lng:137.0860},
+  {k:'大島',        r:'おおしま',             lat:36.7490,lng:137.0780},
+  {k:'新湊',        r:'しんみなと',           lat:36.7800,lng:137.0820},
+  {k:'放生津',      r:'ほうじょうず',         lat:36.7840,lng:137.0750},
+  {k:'串田',        r:'くしだ',               lat:36.7550,lng:137.0950},
+  {k:'黒河',        r:'くろかわ',             lat:36.7420,lng:137.0900},
+  {k:'庄川',        r:'しょうかわ',           lat:36.7300,lng:137.0750},
+  {k:'一条',        r:'いちじょう',           lat:36.7610,lng:137.0860},
+  // 黒部市
+  {k:'黒部',        r:'くろべ',               lat:36.8670,lng:137.4540},
+  {k:'沓掛',        r:'くつかけ',             lat:36.8670,lng:137.4540},
+  {k:'宇奈月',      r:'うなづき',             lat:36.8700,lng:137.5600},
+  {k:'荻生',        r:'おぎゅう',             lat:36.8800,lng:137.4700},
+  {k:'生地',        r:'いくじ',               lat:36.8900,lng:137.4300},
+  {k:'田家',        r:'たのけ',               lat:36.8600,lng:137.4350},
+  {k:'三日市',      r:'みっかいち',           lat:36.8580,lng:137.4600},
+  // 魚津市
+  {k:'魚津',        r:'うおづ',               lat:36.8310,lng:137.4150},
+  {k:'吉島',        r:'よしじま',             lat:36.8310,lng:137.4150},
+  {k:'釈迦堂',      r:'しゃかどう',           lat:36.8350,lng:137.4200},
+  {k:'天神野',      r:'てんじんの',           lat:36.8400,lng:137.4050},
+  {k:'上村木',      r:'かみむらき',           lat:36.8250,lng:137.4300},
+  // 入善町
+  {k:'入善',        r:'にゅうぜん',           lat:36.9280,lng:137.5020},
+  {k:'椚山',        r:'くぬぎやま',           lat:36.9280,lng:137.5020},
+  {k:'舟見',        r:'ふなみ',               lat:36.9100,lng:137.5150},
+  {k:'上山',        r:'かみやま',             lat:36.9400,lng:137.4900},
+  // 滑川市・朝日町
+  {k:'滑川',        r:'なめりかわ',           lat:36.7730,lng:137.3380},
+  {k:'朝日町',      r:'あさひまち',           lat:36.9800,lng:137.5800},
+  {k:'泊',          r:'とまり',               lat:36.9700,lng:137.5600},
+];
+
+// ===== ローカルストレージから追加データ読み込み =====
+try {
+  const extra = JSON.parse(localStorage.getItem('extraTowns') || '[]');
+  TOWNS = TOWNS.concat(extra);
+} catch(e){}
+
+const CHIPS = [
+  {k:'古志',    r:'こし'},       {k:'城川原',  r:'じょうがわら'},
+  {k:'公文名',  r:'こうもんみょう'},{k:'平岡',  r:'ひらおか'},
+  {k:'速星',    r:'はやほし'},   {k:'高屋敷',  r:'たかやしき'},
+  {k:'大沢野',  r:'おおさわの'}, {k:'婦中',    r:'ふちゅう'},
+  {k:'八尾',    r:'やつお'},     {k:'呉羽',    r:'くれは'},
+  {k:'四方',    r:'しかた'},     {k:'水橋',    r:'みずはし'},
+  {k:'岩瀬',    r:'いわせ'},     {k:'新庄',    r:'しんじょう'},
+  {k:'月岡',    r:'つきおか'},   {k:'山室',    r:'やまむろ'},
+  {k:'戸出',    r:'とで'},       {k:'六家',    r:'むつや'},
+  {k:'射水',    r:'いみず'},     {k:'黒部',    r:'くろべ'},
+  {k:'魚津',    r:'うおづ'},     {k:'入善',    r:'にゅうぜん'},
+];
+
+// チップ描画
+document.getElementById('chips').innerHTML =
+  CHIPS.map(c=>`<span class="chip" onclick="selectTown('${c.k}','${c.r}')">
+    ${c.k}<span class="chip-kana">${c.r}</span></span>`).join('');
+
+// 会館ボタン描画
+document.getElementById('hallGrid').innerHTML =
+  HALLS.map((h,i)=>`<button class="hall-btn" id="hb${i}" onclick="selectHall(${i})">
+    ${h.name}<div class="hall-btn-sub">${h.addr}</div></button>`).join('');
+
+// ===== サジェスト =====
+const inp = document.getElementById('inp');
+const sgBox = document.getElementById('suggest');
+inp.addEventListener('input', ()=>{ const q=inp.value.trim(); q ? showSuggest(q) : (sgBox.style.display='none'); });
+inp.addEventListener('keydown', e=>{ if(e.key==='Enter') doSearch(); if(e.key==='Escape') sgBox.style.display='none'; });
+
+function norm(s){ return s.replace(/\s/g,''); }
+
+function showSuggest(q){
+  const nq = norm(q);
+  const matched = TOWNS.filter(t=> norm(t.k).includes(nq) || norm(t.r).includes(nq)).slice(0,8);
+  if(!matched.length){ sgBox.style.display='none'; return; }
+  sgBox.innerHTML = matched.map(t=>`<div class="sg" onclick="selectTown('${t.k}','${t.r}')">
+    <div><div class="sg-kanji">${t.k}</div><div class="sg-kana">${t.r}</div></div>
+  </div>`).join('');
+  sgBox.style.display='block';
+}
+
+function selectTown(kanji, kana){
+  inp.value = kanji; sgBox.style.display='none';
+  const t = TOWNS.find(t=>t.k===kanji);
+  if(t) renderHalls(t.lat, t.lng, kanji+'（'+kana+'）');
+  else doSearch();
+}
+
+function doSearch(){
+  const q = norm(inp.value); if(!q) return; sgBox.style.display='none';
+  const hit =
+    TOWNS.find(t=>norm(t.k)===q||norm(t.r)===q) ||
+    TOWNS.find(t=>norm(t.k).startsWith(q)||norm(t.r).startsWith(q)) ||
+    TOWNS.find(t=>norm(t.k).includes(q)||norm(t.r).includes(q));
+  if(hit){ renderHalls(hit.lat, hit.lng, hit.k+'（'+hit.r+'）'); }
+  else {
+    document.getElementById('st').textContent=`「${q}」が見つかりませんでした`;
+    document.getElementById('st').className='status err';
+    document.getElementById('results').innerHTML='';
+  }
+}
+
+function km(a,b,c,d){
+  const R=6371,p=Math.PI/180;
+  const x=Math.sin((c-a)*p/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin((d-b)*p/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+function renderHalls(lat, lng, label){
+  document.getElementById('st').textContent=`📍 「${label}」で検索しました`;
+  document.getElementById('st').className='status ok';
+  const sorted = HALLS.map(h=>({...h,d:km(lat,lng,h.lat,h.lng)})).sort((a,b)=>a.d-b.d);
+  const townMapUrl = `https://maps.google.com/?q=${lat},${lng}`;
+  document.getElementById('results').innerHTML =
+    `<div class="res-head">「${label}」から近い順　<a href="${townMapUrl}" target="_blank" style="font-size:.75rem;color:var(--green);border:1px solid var(--green);border-radius:4px;padding:2px 8px;text-decoration:none;margin-left:6px">🗺 この場所を地図で見る</a></div>` +
+    sorted.map((h,i)=>`<div class="card${i===0?' top1':''}">
+      <div class="rank">${i+1}</div>
+      <div class="body">
+        <div class="hall-name">${h.name}</div>
+        <div class="hall-addr">${h.addr}</div>
+        <a class="map-link" href="https://maps.google.com/?q=${encodeURIComponent('富山県'+h.addr)}" target="_blank">📍 地図を開く</a>
+      </div>
+      <div class="dist-wrap"><div class="dist-num">${h.d.toFixed(1)}</div><div class="dist-unit">km</div></div>
+    </div>`).join('');
+}
+
+// ===== 逆引き（会館→町名） =====
+let revRadius = 5;
+let selHallIdx = null;
+
+function setRevRad(v){
+  revRadius = parseInt(v);
+  document.getElementById('revRadVal').textContent = v+' km';
+  if(selHallIdx !== null) renderTowns(selHallIdx);
+}
+
+function selectHall(idx){
+  selHallIdx = idx;
+  document.querySelectorAll('.hall-btn').forEach((b,i)=>b.classList.toggle('sel',i===idx));
+  renderTowns(idx);
+}
+
+function renderTowns(idx){
+  const h = HALLS[idx];
+  const nearby = TOWNS
+    .map(t=>({...t, d:km(h.lat,h.lng,t.lat,t.lng)}))
+    .filter(t=>t.d<=revRadius)
+    .sort((a,b)=>a.d-b.d);
+
+  document.getElementById('revSt').textContent =
+    `${h.name}から${revRadius}km圏内：${nearby.length}件`;
+  document.getElementById('revSt').className = 'status ok';
+
+  document.getElementById('townResult').innerHTML = nearby.length===0
+    ? `<div style="text-align:center;padding:20px;color:var(--grey);font-size:.88rem">${revRadius}km圏内に町名データがありません</div>`
+    : `<div class="town-res-head">${h.name} から ${revRadius}km 圏内の町名</div>
+       <div class="town-chips">${nearby.map(t=>"<a class='town-chip' href='https://maps.google.com/?q="+t.lat+","+t.lng+"' target='_blank' style='text-decoration:none;color:inherit;cursor:pointer'>"+t.k+"<span style='font-size:.65rem;color:var(--grey);margin-left:4px'>"+t.r+" "+t.d.toFixed(1)+"km 🗺</span></a>").join('')}</div>`;
+}
+
+// ===== タブ切替 =====
+function switchTab(name){
+  ['search','rev'].forEach((n,i)=>{
+    document.querySelectorAll('.tab')[i].classList.toggle('active',n===name);
+    document.getElementById('panel-'+n).classList.toggle('active',n===name);
+  });
+}
+
+document.addEventListener('click', e=>{ if(!e.target.closest('.suggest-wrap')) sgBox.style.display='none'; });
+
+// ===== パスワード管理 =====
+const PW = 'bell2024miho'; // ← ここを変えるとパスワード変更
+
+function openLock(){
+  document.getElementById('modalBg').classList.add('show');
+  document.getElementById('pwInput').value='';
+  document.getElementById('modalErr').style.display='none';
+  setTimeout(()=>document.getElementById('pwInput').focus(),100);
+}
+function closeLock(){ document.getElementById('modalBg').classList.remove('show'); }
+function checkPw(){
+  if(document.getElementById('pwInput').value === PW){
+    closeLock();
+    openEdit();
+  } else {
+    document.getElementById('modalErr').style.display='block';
+  }
+}
+document.getElementById('pwInput').addEventListener('keydown',e=>{ if(e.key==='Enter') checkPw(); });
+
+function openEdit(){
+  const panel = document.getElementById('editPanel');
+  panel.classList.add('show');
+  // 追加データを表示
+  const extra = JSON.parse(localStorage.getItem('extraTowns')||'[]');
+  document.getElementById('editArea').value =
+    extra.map(t=>`{k:'${t.k}', r:'${t.r}', lat:${t.lat}, lng:${t.lng}}`).join('\n');
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function saveEdit(){
+  const raw = document.getElementById('editArea').value.trim();
+  if(!raw){ localStorage.removeItem('extraTowns'); alert('保存しました（追加データなし）'); location.reload(); return; }
+  try {
+    const parsed = eval('['+raw.replace(/}\s*\n\s*{/g,'},{')+']');
+    localStorage.setItem('extraTowns', JSON.stringify(parsed));
+    alert(`✅ ${parsed.length}件を保存しました。ページを再読み込みします。`);
+    location.reload();
+  } catch(e){
+    alert('⚠️ 書式にエラーがあります。確認してください。\n'+e.message);
+  }
+}
+
+function logout(){
+  document.getElementById('editPanel').classList.remove('show');
+}
+</script>
+</body>
+</html>
